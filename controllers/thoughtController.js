@@ -44,7 +44,7 @@ const thoughtController = {
       const thought = await Thought.create(req.body);
 
       // Push the created thought's _id to the associated user's thoughts array field
-      const user = await User.findOneAndUpdate(
+      const user = await User.updateThought(
         { username: req.body.username },
         { $push: { thoughts: thought._id } },
         { new: true }
@@ -70,7 +70,7 @@ const thoughtController = {
         return res.status(404).json({ message: 'No such thought exists' });
       }
 
-      const user = await User.findOneAndUpdate(
+      const user = await User.updateThought(
         { thoughts: req.params.thoughtId },
         { $pull: { thoughts: req.params.thoughtId } },
         { new: true }
@@ -92,7 +92,7 @@ const thoughtController = {
   // Add a reaction to a thought
   async addReaction(req, res) {
     try {
-      const thought = await Thought.findOneAndUpdate(
+      const thought = await Thought.updateThought(
         { _id: req.params.thoughtId },
         { $addToSet: { reactions: req.body } },
         { runValidators: true, new: true }
@@ -112,7 +112,7 @@ const thoughtController = {
   // Remove a reaction from a thought
   async removeReaction(req, res) {
     try {
-      const thought = await Thought.findOneAndUpdate(
+      const thought = await Thought.updateThought(
         { _id: req.params.thoughtId },
         { $pull: { reactions: { reactionId: req.params.reactionId } } },
         { runValidators: true, new: true }
@@ -128,38 +128,24 @@ const thoughtController = {
       return res.status(500).json({ error: 'Internal Server Error' });
     }
   },
-};
+  async updateThought(req, res) {
+    try {
+      const thought = await Thought.findOneAndUpdate(
+        { _id: req.params.thoughtId },
+        { $set: req.body },
+        { runValidators: true, new: true }
+      );
 
-// Aggregate function to get the number of thoughts overall
-const headCount = async () => {
-  try {
-    const numberOfThoughts = await Thought.aggregate().count('thoughtCount');
-    return numberOfThoughts;
-  } catch (err) {
-    console.error(err);
-    throw err;
-  }
-};
+      if (!thought) {
+        return res.status(404).json({ message: 'No thought with this id!' });
+      }
 
-// Aggregate function for getting the overall grade using $avg
-const grade = async (thoughtId) => {
-  try {
-    const result = await Thought.aggregate([
-      { $match: { _id: new ObjectId(thoughtId) } },
-      { $unwind: '$reactions' },
-      {
-        $group: {
-          _id: new ObjectId(thoughtId),
-          overallGrade: { $avg: '$reactions.score' },
-        },
-      },
-    ]);
-
-    return result.length > 0 ? result[0].overallGrade : null;
-  } catch (err) {
-    console.error(err);
-    throw err;
-  }
+      res.json(thought);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json(err);
+    }
+  },
 };
 
 module.exports = thoughtController;
