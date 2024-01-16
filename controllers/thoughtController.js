@@ -8,8 +8,7 @@ const thoughtController = {
       const thoughts = await Thought.find();
 
       const thoughtObj = {
-        thoughts,
-        headCount: await headCount(),
+        thoughts
       };
 
       res.json(thoughtObj);
@@ -29,8 +28,7 @@ const thoughtController = {
       }
 
       res.json({
-        thought,
-        grade: await grade(req.params.thoughtId),
+        thought
       });
     } catch (err) {
       console.error(err);
@@ -44,8 +42,8 @@ const thoughtController = {
       const thought = await Thought.create(req.body);
 
       // Push the created thought's _id to the associated user's thoughts array field
-      const user = await User.updateThought(
-        { username: req.body.username },
+      const user = await User.findOneAndUpdate(
+        { _id: req.body.userId },
         { $push: { thoughts: thought._id } },
         { new: true }
       );
